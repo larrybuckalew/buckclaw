@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────
+#  BuckClaw — Step 00: Chat Loop
+#  Copy this file to config.user.yaml and fill
+#  in your real API key before running.
+# ─────────────────────────────────────────────
+
+llm:
+  # LiteLLM model string.  Examples:
+  #   Anthropic : "anthropic/claude-3-5-haiku-20241022"
+  #   OpenAI    : "openai/gpt-4o-mini"
+  #   Ollama    : "ollama/llama3"
+  model: "anthropic/claude-3-5-haiku-20241022"
+
+  # Your provider API key.
+  api_key: "YOUR_API_KEY_HERE"
+
+  # Optional: override the API base URL (useful for local models / proxies).
+  # api_base: "http://localhost:11434"
+
+agent:
+  # The name shown in the chat prompt.
+  name: "my-bot"
+
+  # System prompt that shapes your agent's personality.
+  system_prompt: |
+    You are my-bot, a helpful and friendly AI assistant.
+    Be concise, clear, and always ready to help.

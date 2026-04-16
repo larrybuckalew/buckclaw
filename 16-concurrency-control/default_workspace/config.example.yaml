@@ -1,0 +1,25 @@
+llm:
+  model: claude-3-5-sonnet-20241022
+  api_key: YOUR_API_KEY_HERE
+  api_base: null
+
+websearch:
+  api_key: YOUR_BRAVE_SEARCH_API_KEY
+
+channels:
+  telegram:
+    token: YOUR_TELEGRAM_BOT_TOKEN
+
+api:
+  enabled: false
+  host: localhost
+  port: 8000
+
+agent:
+  name: my-bot
+  description: An AI assistant
+
+heartbeat:
+  enabled: false
+  interval_seconds: 1800
+  prompt: "Check in: summarize any pending tasks or reminders."

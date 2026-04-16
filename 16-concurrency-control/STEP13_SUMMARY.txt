@@ -1,0 +1,211 @@
+================================================================================
+STEP 13: MULTI-LAYER PROMPTS - BUILD SUMMARY
+================================================================================
+
+PROJECT LOCATION:
+  /sessions/eager-pensive-maxwell/mnt/outputs/buckclaw/13-multi-layer-prompts
+
+VERSION: 0.14.0
+DESCRIPTION: Step 13: Multi-Layer Prompts
+
+================================================================================
+CONCEPT
+================================================================================
+
+Step 13 replaces the flat system_prompt string with a sophisticated PromptBuilder
+that dynamically assembles 5 layers of context:
+
+  1. Identity       -- AGENT.md body (who the agent is, what it can do)
+  2. Soul           -- SOUL.md body (personality and tone, optional)
+  3. Bootstrap      -- BOOTSTRAP.md + AGENTS.md + active cron list
+  4. Runtime        -- current timestamp, session ID
+  5. Channel        -- platform hint (telegram, cli, ws, cron, heartbeat)
+
+Layers are joined with visible separators so the model understands structure.
+
+================================================================================
+FILES CREATED/MODIFIED
+================================================================================
+
+CORE SYSTEM:
+
+1. src/mybot/core/prompt_builder.py [NEW]
+   - PromptBuilder class with 5-layer assembly logic
+   - _load_bootstrap_context() loads BOOTSTRAP.md, AGENTS.md, cron list
+   - _build_runtime_context() injects current time and session ID
+   - _build_channel_hint() maps platform to guidance text
+   - build() method orchestrates the assembly
+
+2. src/mybot/core/agent_loader.py [MODIFIED]
+   - AgentDef now has soul_md field
+   - _parse_agent_file() looks for SOUL.md alongside AGENT.md
+   - SOUL.md is optional; defaults to empty string
+
+3. src/mybot/core/context.py [MODIFIED]
+   - Added prompt_builder field to AppContext
+
+4. src/mybot/server/agent_worker.py [MODIFIED]
+   - _get_or_create_session() uses PromptBuilder if available
+   - Falls back to agent_def.system_prompt if not
+   - _refresh_session_prompt() rebuilds prompt when source changes
+
+5. src/mybot/cli/main.py [MODIFIED]
+   - Import PromptBuilder
+   - Create PromptBuilder(workspace_dir, cron_loader)
+   - Assign to context.prompt_builder
+   - Updated help text: "Step 13: Multi-Layer Prompts"
+
+WORKSPACE CONTEXT:
+
+6. default_workspace/BOOTSTRAP.md [NEW]
+   - Workspace guide describing directory structure
+   - Key rules (relative paths, file formats, config safety)
+
+7. default_workspace/AGENTS.md [NEW]
+   - Agent roster table (ID, Name, Description)
+   - Dispatch patterns (how to delegate tasks)
+
+AGENT DEFINITIONS:
+
+8. default_workspace/agents/my-bot/AGENT.md [NEW]
+   - YAML frontmatter: id, name, description
+   - Body: agent identity, capabilities, behavioral guidelines
+   - Layer 1 content
+
+9. default_workspace/agents/my-bot/SOUL.md [NEW]
+   - Personality and tone guidance
+   - Layer 2 content
+   - No frontmatter needed
+
+CONFIGURATION:
+
+10. pyproject.toml [MODIFIED]
+    - Version: 0.13.0 -> 0.14.0
+    - Description: "Step 12: Cron + Heartbeat" -> "Step 13: Multi-Layer Prompts"
+
+DOCUMENTATION:
+
+11. README.md [MODIFIED]
+    - Comprehensive guide to the 5-layer system
+    - Detailed architecture explanation
+    - PromptBuilder.build() signature and semantics
+    - BOOTSTRAP.md and AGENTS.md purposes
+    - Runtime context and channel hints
+    - Extensibility patterns (future layers)
+    - Try-it-out example: "When and Where are we talking?"
+    - Files modified summary
+    - What's next: Step 14 (Post Message Back)
+
+================================================================================
+ARCHITECTURE CHANGES
+================================================================================
+
+BEFORE (Step 12):
+  agent_def.system_prompt (flat string)
+  └─ Loaded once, never updated
+  └─ No awareness of workspace, time, platform
+
+AFTER (Step 13):
+  PromptBuilder.build(agent_def, session_id, source)
+  ├─ Layer 1: agent_def.system_prompt
+  ├─ Layer 2: agent_def.soul_md
+  ├─ Layer 3: BOOTSTRAP.md + AGENTS.md + crons
+  ├─ Layer 4: current time + session ID
+  └─ Layer 5: platform hint from source.platform
+
+  All 5 layers joined with "---" separator.
+  Layers 4 and 5 are dynamic; refreshed per message.
+
+EXTENSIBILITY:
+
+New layers can be added by:
+1. Implementing a _load_x() method in PromptBuilder
+2. Inserting it in the build() method at the appropriate position
+3. No changes needed to AppContext or AgentDef
+
+Example future layers:
+- Memory (retrieved context from prior sessions)
+- Project Context (current project status)
+- User Preferences (timezone, language, style)
+- Safety Guidelines (dynamic guardrails)
+- Tool Inventory (current available tools)
+
+================================================================================
+SYNTAX CHECK RESULTS
+================================================================================
+
+All Python files compiled successfully:
+
+  ✓ src/mybot/core/agent_loader.py
+  ✓ src/mybot/core/prompt_builder.py
+  ✓ src/mybot/core/context.py
+  ✓ src/mybot/server/agent_worker.py
+  ✓ src/mybot/cli/main.py
+
+No syntax errors detected.
+
+================================================================================
+KEY FEATURES
+================================================================================
+
+1. IDENTITY vs. PERSONALITY SEPARATION
+   - AGENT.md (Layer 1): Who you are
+   - SOUL.md (Layer 2): How you feel
+   - Can evolve independently
+
+2. WORKSPACE AWARENESS
+   - Agent knows the workspace structure (BOOTSTRAP.md)
+   - Agent knows about sibling agents (AGENTS.md)
+   - Agent sees scheduled cron jobs
+
+3. RUNTIME AWARENESS
+   - Current timestamp (UTC)
+   - Session ID for reference
+   - Enables "what time is it?" answers
+
+4. PLATFORM-AWARE COMMUNICATION
+   - Telegram: Keep replies concise
+   - CLI: Terminal session context
+   - WebSocket: Programmatic client
+   - Cron/Heartbeat: Automated, no user present
+
+5. DYNAMIC PROMPT REFRESH
+   - If session source changes mid-session (e.g., heartbeat for Telegram user)
+   - AgentWorker._refresh_session_prompt() rebuilds the prompt
+   - Agent gets updated guidance without breaking conversation
+
+================================================================================
+TRY IT OUT
+================================================================================
+
+Start a chat and ask the agent contextual questions:
+
+  $ python -m mybot.cli.main chat
+
+  user> What time is it right now?
+  user> What platform am I using to talk to you?
+  user> What agents are available in this workspace?
+
+The agent will answer based on:
+- Layer 4 (Runtime): Current timestamp
+- Layer 5 (Channel): Platform hint ("CLI terminal session")
+- Layer 3 (Bootstrap): AGENTS.md roster
+
+Try the same commands from different channels (Telegram, WebSocket) to see
+how the agent's awareness changes.
+
+================================================================================
+WHAT'S NEXT
+================================================================================
+
+Step 14: Post Message Back
+
+The multi-layer prompt system is now in place. The next step focuses on:
+- Delivering agent responses back through various channels
+- Proper formatting for each channel
+- Error handling and delivery confirmation
+- Completing the feedback loop:
+
+    User Input (Channel) → Agent (PromptBuilder) → Response → Channel Delivery
+
+================================================================================

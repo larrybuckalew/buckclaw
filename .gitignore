@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Secrets - never commit these
+**/config.user.yaml
+**/.env
+
+# Runtime data
+**/.history/
+**/.event_store/
+
+# IDE
+.vscode/
+.idea/
+*.swp

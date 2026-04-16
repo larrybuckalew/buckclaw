@@ -1,0 +1,97 @@
+STEP 15: AGENT DISPATCH - BUILD SUMMARY
+========================================
+
+Overview:
+---------
+Step 15 implements agent-to-agent delegation via the EventBus. Agents can now dispatch
+tasks to other specialized agents and await their responses asynchronously.
+
+Key Files Created/Modified:
+---------------------------
+
+1. MODIFIED: pyproject.toml
+   - Version: 0.15.0 -> 0.16.0
+   - Description: "Step 14: Post Message Back" -> "Step 15: Agent Dispatch"
+
+2. MODIFIED: src/mybot/core/events.py
+   - Added `parent_session_id: str = ""` field to DispatchEvent
+   - Updated docstring to include "agent-dispatch" as a dispatch source
+   - Enables tracing of agent call lineage
+
+3. CREATED: src/mybot/tools/subagent_tool.py
+   - create_subagent_dispatch_tool() factory: creates dispatch tool if peers exist
+   - SubagentDispatchTool class: implements the dispatch mechanism
+   - Handles: session creation, subscription (before publish\!), event publishing, 
+     result awaiting, error handling, cleanup
+   - Timeout: 120 seconds per dispatch
+
+4. MODIFIED: src/mybot/server/agent_worker.py
+   - Updated _get_or_create_session() to inject subagent_dispatch tool
+   - Injection happens after cron post_message injection, before session creation
+   - Tool is only injected if context.agent_loader exists and agent has peers
+
+5. CREATED: default_workspace/agents/cookie/AGENT.md
+   - Agent ID: cookie
+   - Name: Cookie
+   - Description: Cheerful assistant for file reading and summaries
+
+6. CREATED: default_workspace/agents/cookie/SOUL.md
+   - Personality traits: cheerful, efficient, sweet
+   - Behavior hints for the LLM
+
+7. MODIFIED: default_workspace/AGENTS.md
+   - Added cookie to the agent roster table
+   - Updated dispatch patterns section
+
+8. CREATED: README.md
+   - Comprehensive documentation of the dispatch mechanism
+   - Step-by-step flow diagram
+   - Component breakdown (events, factory, tool, injection)
+   - Why subscribe before publish (race condition prevention)
+   - Cookie agent example
+   - Try-it-out instructions
+   - Design decisions and rationale
+   - What's next (Step 16: Concurrency Control)
+
+How It Works:
+-------------
+1. Main agent calls subagent_dispatch(agent_id="cookie", task="...", context="...")
+2. Tool creates new session in history_store
+3. Tool subscribes temporary handler to DispatchResultEvent (filtered by session_id)
+4. Tool publishes DispatchEvent(session_id=new_session, parent_session_id=trace_info)
+5. AgentWorker.handle_dispatch() receives event
+6. Worker loads Cookie agent and runs session.chat(task)
+7. Cookie responds and publishes DispatchResultEvent
+8. Handler resolves future with response
+9. Tool unsubscribes and returns JSON: {"result": "...", "session_id": "..."}
+10. Main agent presents result to user
+
+Critical Design Points:
+-----------------------
+- Subscribe BEFORE publish to prevent race conditions
+- Tool returns None if agent has no peers (no dispatch targets)
+- Agent cannot dispatch to itself
+- EventBus keeps agents decoupled (no direct imports)
+- parent_session_id enables tracing of call lineage
+- Dynamic tool description lists available agents as XML
+
+Syntax Check Results:
+---------------------
+✓ src/mybot/core/events.py
+✓ src/mybot/tools/subagent_tool.py
+✓ src/mybot/server/agent_worker.py
+
+All files pass Python syntax validation.
+
+Available Agents:
+-----------------
+- my-bot (default)      | General-purpose helpful assistant
+- summarizer            | Specialist for condensing documents and text
+- cookie (NEW)          | Cheerful assistant for file reading and summaries
+
+Next Steps (Step 16):
+---------------------
+- Add dispatch queue to handle concurrent requests
+- Implement worker pool for parallel execution
+- Add request retries and better error recovery
+- Load balancing and rate limiting

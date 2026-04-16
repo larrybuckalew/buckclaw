@@ -1,0 +1,161 @@
+================================================================================
+STEP 14: POST MESSAGE BACK - BUILD COMPLETE
+================================================================================
+
+OVERVIEW
+--------
+Step 14 adds the post_message tool, which allows cron job agents to proactively
+send messages back to a user's session without waiting for user input. This is
+the critical missing piece that lets cron jobs communicate results.
+
+KEY PROBLEM SOLVED
+------------------
+When a cron job runs on schedule, it fires in its own isolated session with no
+user waiting at the terminal. Without post_message, the cron agent's response
+has nowhere to go. This step provides the delivery mechanism.
+
+FILES CREATED/MODIFIED
+---------------------
+
+NEW FILE: src/mybot/tools/post_message_tool.py
+  - PostMessageTool class: publishes OutboundEvent to delivery_session_id
+  - create_post_message_tool() factory: builds pre-configured tool instance
+  - Only injected into cron sessions when target_session_id is set
+
+MODIFIED: src/mybot/core/cron_loader.py
+  - Added target_session_id field to CronDef
+  - Default empty string means no delivery (regular cron behavior)
+  - Set to user's session_id to enable post_message delivery
+
+MODIFIED: src/mybot/core/context.py
+  - Added cron_delivery_map field: dict[cron_session_id] -> user_session_id
+  - Populated by CronWorker._ensure_cron_tools()
+  - Read by AgentWorker._get_or_create_session()
+
+MODIFIED: src/mybot/server/cron_worker.py
+  - Added _ensure_cron_tools() method
+  - Called from _dispatch_job() after session creation
+  - Registers delivery target in context.cron_delivery_map if target_session_id set
+
+MODIFIED: src/mybot/server/agent_worker.py
+  - Updated _get_or_create_session() with post_message injection logic
+  - Checks context.cron_delivery_map for delivery target
+  - If found, creates PostMessageTool and adds to tool registry
+  - Logs when injection happens
+
+MODIFIED: default_workspace/skills/cron-ops.md
+  - Documented target_session_id field in CRON.md format
+  - Added "Delivering Messages Back to Users" section
+  - Explained how agent gets session_id from Layer 4 context
+  - Clarified that post_message only available when target_session_id set
+
+MODIFIED: pyproject.toml
+  - Version bumped to 0.15.0
+  - Description updated to "Step 14: Post Message Back"
+
+NEW FILE: README.md
+  - Comprehensive architecture documentation
+  - End-to-end flow diagram
+  - Design notes and rationale
+  - Try-it-out example
+  - Links to next step (Step 15)
+
+SYNTAX CHECK RESULTS
+-------------------
+All Python files compile successfully:
+  ✓ src/mybot/tools/post_message_tool.py
+  ✓ src/mybot/core/cron_loader.py
+  ✓ src/mybot/core/context.py
+  ✓ src/mybot/server/cron_worker.py
+  ✓ src/mybot/server/agent_worker.py
+
+TECHNICAL FLOW
+--------------
+
+1. User: "Message me in 5 minutes"
+2. Agent reads session_id from Layer 4 runtime context
+3. Agent creates CRON.md with target_session_id=<user_session>, one_off=true
+4. CronWorker._tick() detects job is due after 5 minutes
+5. CronWorker._dispatch_job() calls _ensure_cron_tools()
+6. _ensure_cron_tools() registers mapping in context.cron_delivery_map
+7. CronWorker publishes DispatchEvent to AgentWorker
+8. AgentWorker._get_or_create_session() checks cron_delivery_map
+9. If found, injects PostMessageTool pre-configured with user's session_id
+10. Cron agent calls post_message("message text")
+11. PostMessageTool.execute() publishes OutboundEvent(session_id=user_session)
+12. DeliveryWorker picks up event and routes to user's channel
+13. User receives message on their platform
+
+KEY DESIGN DECISIONS
+-------------------
+
+Why post_message is only in cron sessions:
+  - User-facing sessions have waiting user; don't need to post back
+  - Cron sessions are headless; need a way to communicate
+  - Keeps tool surface clean and intention-clear
+
+Why one-off crons are the right primitive:
+  - Persistence: survives app restarts
+  - Scalability: thousands of jobs via single tick loop
+  - Flexibility: handles both recurring and one-time tasks
+  - Discoverability: all work visible as CRON.md files
+
+Why deliver via OutboundEvent/DeliveryWorker:
+  - Consistent with regular agent responses
+  - Platform agnostic (Telegram, CLI, WebSocket, etc.)
+  - Testable and mockable
+
+TESTING EXAMPLE
+---------------
+
+1. Start app in CLI mode with a session
+2. Ask: "Message me in 1 minute with 'test message'"
+3. Wait 60+ seconds
+4. Should receive "test message" in your session
+
+Behind the scenes:
+  - CronWorker detects the job
+  - Injects PostMessageTool
+  - Cron agent calls post_message()
+  - Message delivered via existing pipeline
+
+DIRECTORY STRUCTURE
+-------------------
+
+14-post-message-back/
+├── pyproject.toml                    [MODIFIED]
+├── README.md                         [NEW]
+├── STEP14_SUMMARY.txt               [NEW - THIS FILE]
+├── default_workspace/
+│   └── skills/
+│       └── cron-ops.md              [MODIFIED]
+└── src/mybot/
+    ├── core/
+    │   ├── cron_loader.py           [MODIFIED]
+    │   └── context.py               [MODIFIED]
+    ├── server/
+    │   ├── cron_worker.py           [MODIFIED]
+    │   └── agent_worker.py          [MODIFIED]
+    └── tools/
+        └── post_message_tool.py     [NEW]
+
+NEXT STEP
+---------
+Step 15: Agent Dispatch
+  - Enable one agent to delegate work to another agent
+  - Multi-agent orchestration on top of cron + tool infrastructure
+  - Agent-to-agent communication and task delegation
+
+VERIFICATION CHECKLIST
+----------------------
+[✓] CronDef has target_session_id field
+[✓] PostMessageTool class created with factory function
+[✓] AppContext has cron_delivery_map field
+[✓] CronWorker._ensure_cron_tools() implemented
+[✓] AgentWorker injects PostMessageTool correctly
+[✓] Cron-ops skill documents new functionality
+[✓] README.md comprehensive and accurate
+[✓] All Python files pass syntax check
+[✓] Version bumped to 0.15.0
+
+================================================================================

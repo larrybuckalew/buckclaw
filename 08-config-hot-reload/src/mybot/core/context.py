@@ -1,0 +1,26 @@
+"""core/context.py -- Shared application context passed to all workers."""
+from __future__ import annotations
+from dataclasses import dataclass, field
+
+from mybot.utils.config import Config
+from mybot.core.eventbus import EventBus
+from mybot.core.history import HistoryStore
+from mybot.provider.llm.base import LLMProvider
+from mybot.skills.loader import SkillLoader
+from mybot.tools.registry import ToolRegistry
+
+
+@dataclass
+class AppContext:
+    """
+    Single object that wires all shared resources together.
+
+    Passed into every Worker and Adapter so they can access the event bus,
+    config, LLM provider, and storage without global state.
+    """
+    config: Config
+    eventbus: EventBus
+    llm: LLMProvider
+    history_store: HistoryStore
+    tool_registry: ToolRegistry
+    skill_loader: SkillLoader

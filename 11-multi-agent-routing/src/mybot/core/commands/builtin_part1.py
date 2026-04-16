@@ -1,0 +1,100 @@
+from typing import TYPE_CHECKING, Optional
+
+from mybot.core.commands.base import Command
+
+if TYPE_CHECKING:
+    from mybot.core.agent import AgentSession
+    from mybot.skills.loader import SkillLoader
+
+
+class HelpCommand(Command):
+    """Display available commands."""
+    
+    name = "help"
+    aliases = ["?"]
+    description = "Show available commands"
+    
+    async def execute(self, args: str, session: "AgentSession") -> str:
+        """Execute help command."""
+        if not session.command_registry:
+            return "No command registry available."
+        
+        commands = session.command_registry.get_commands()
+        lines = ["Available Commands:"]
+        
+        for cmd in sorted(commands.values(), key=lambda c: c.name):
+            cmd_names = f"/{cmd.name}"
+            if cmd.aliases:
+                cmd_names += ", " + ", ".join(f"/{alias}" for alias in cmd.aliases)
+            description = cmd.description or "No description"
+            lines.append(f"{cmd_names} - {description}")
+        
+        return "
+".join(lines)
+
+
+class SkillsCommand(Command):
+    """List available skills."""
+    
+    name = "skills"
+    aliases = []
+    description = "List available skills"
+    
+    def __init__(self, skill_loader: Optional["SkillLoader"] = None):
+        """Initialize with optional skill loader.
+        
+        Args:
+            skill_loader: The skill loader instance.
+        """
+        self.skill_loader = skill_loader
+    
+    async def execute(self, args: str, session: "AgentSession") -> str:
+        """Execute skills command."""
+        if not self.skill_loader:
+            return "Skill loader not available."
+        
+        try:
+            skills = self.skill_loader.discover_skills()
+            if not skills:
+                return "No skills available."
+            
+            lines = ["Available Skills:"]
+            for skill_name in sorted(skills.keys()):
+                lines.append(f"- {skill_name}")
+            
+            return "
+".join(lines)
+        except Exception as e:
+            return f"Failed to load skills: {e}"
+
+
+class SessionCommand(Command):
+    """Show current session information."""
+    
+    name = "session"
+    aliases = []
+    description = "Show current session info"
+    
+    async def execute(self, args: str, session: "AgentSession") -> str:
+        """Execute session command."""
+        lines = ["Session Info:"]
+        
+        if hasattr(session, 'session_meta') and session.session_meta:
+            session_id = session.session_meta.get('id', 'N/A')
+            agent_name = session.session_meta.get('agent_name', 'N/A')
+            created_at = session.session_meta.get('created_at', 'N/A')
+            lines.append(f"ID: {session_id}")
+            lines.append(f"Agent: {agent_name}")
+            lines.append(f"Created: {created_at}")
+        else:
+            lines.append("ID: N/A")
+            lines.append("Agent: N/A")
+            lines.append("Created: N/A")
+        
+        message_count = 0
+        if hasattr(session, 'state') and session.state and hasattr(session.state, 'message_count'):
+            message_count = session.state.message_count
+        lines.append(f"Messages: {message_count}")
+        
+        return "
+".join(lines)

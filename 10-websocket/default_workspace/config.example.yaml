@@ -1,0 +1,65 @@
+# ---------------------
+#  BuckClaw — Step 10: WebSocket
+#  Copy this file to config.user.yaml and fill
+#  in your real API keys before running.
+# ---------------------
+
+# GETTING A BRAVE SEARCH API KEY:
+# 1. Go to https://api.search.brave.com/
+# 2. Sign up for a free account
+# 3. Copy your API key from the dashboard
+# Leave the api_key empty to disable web tools.
+
+# GETTING A TELEGRAM BOT TOKEN:
+# 1. Open Telegram and search for @BotFather
+# 2. Send /newbot and follow the prompts
+# 3. Copy your bot token from the message
+# Leave the token empty to disable Telegram.
+
+llm:
+  # LiteLLM model string.  Examples:
+  #   Anthropic : "anthropic/claude-3-5-haiku-20241022"
+  #   OpenAI    : "openai/gpt-4o-mini"
+  #   Ollama    : "ollama/llama3"
+  model: "anthropic/claude-3-5-haiku-20241022"
+
+  # Your provider API key.
+  api_key: "YOUR_API_KEY_HERE"
+
+  # Optional: override the API base URL (useful for local models / proxies).
+  # api_base: "http://localhost:11434"
+
+agent:
+  # The name shown in the chat prompt.
+  name: "my-bot"
+
+  # System prompt that shapes your agent's personality.
+  system_prompt: |
+    You are my-bot, a helpful and friendly AI assistant.
+    Be concise, clear, and always ready to help.
+
+websearch:
+  # Web search provider: brave or duckduckgo
+  provider: "brave"
+  
+  # Brave Search API key (required for web search)
+  # Get one free at https://api.search.brave.com/
+  api_key: "YOUR_BRAVE_SEARCH_API_KEY"
+
+webread:
+  # Web reading provider: currently only httpx
+  provider: "httpx"
+
+channels:
+  telegram:
+    # Telegram bot token from @BotFather
+    token: "YOUR_TELEGRAM_BOT_TOKEN"
+    
+    # List of allowed user IDs (empty list = allow all users)
+    allowed_user_ids: []
+
+api:
+  # WebSocket API server configuration
+  host: "127.0.0.1"
+  port: 8000
+  enabled: true

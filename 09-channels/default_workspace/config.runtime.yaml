@@ -1,0 +1,14 @@
+# config.runtime.yaml -- optional runtime overrides (auto-applied on save)
+#
+# This file is deep-merged ON TOP OF config.user.yaml at startup and
+# whenever either file changes. Use it to tweak settings without editing
+# your main config (e.g. switch models, adjust the system prompt mid-session).
+#
+# Example overrides:
+#
+# llm:
+#   model: "anthropic/claude-opus-4-6"
+#
+# agent:
+#   system_prompt: |
+#     You are my-bot in DEBUG mode. Be extra verbose.
