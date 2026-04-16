@@ -86,7 +86,7 @@ async def _run_server(
         console.print(f"[bold red]Config error:[/bold red] {exc}")
         return
 
-    if cfg.llm.api_key in ("", "YOUR_API_KEY_HERE"):
+    if cfg.llm.api_key in ("", "YOUR_API_KEY_HERE", "YOUR_OPENROUTER_API_KEY"):
         console.print("[bold red]No API key.[/bold red]  Edit config.user.yaml.")
         return
 
